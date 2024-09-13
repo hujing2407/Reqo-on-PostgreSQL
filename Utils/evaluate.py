@@ -260,7 +260,6 @@ def plot_explanation(model_results, postgres_cost, total_plan_num,  subtree_labe
     add_values(rects1)
     add_values(rects2)
     
-    plt.figure(figsize=(16, 12))
     plt.tight_layout()
     plt.savefig(save_path)
     plt.show()
