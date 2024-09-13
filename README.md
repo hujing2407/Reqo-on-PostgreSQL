@@ -16,7 +16,6 @@ First, install PostgreSQL on your system. The installation process varies depend
 ```
 sudo apt update
 sudo apt install postgresql postgresql-contrib
-
 ```
 
 ### Step 2: Create a Database
