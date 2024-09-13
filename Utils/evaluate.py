@@ -152,7 +152,7 @@ def plot_runtimes(postgres_runtimes, reqo_runtimes, optimal_runtimes, save_path=
     plt.plot(queries, optimal_cumulative, label='Optimal', linestyle='-', color='red')
 
     # Adding titles and labels
-    plt.title(f'Runtime Performace Comparison')
+    plt.title(f'Runtime Performance Comparison')
     plt.xlabel('Query Number')
     plt.ylabel('Total Runtime (s)')
     plt.legend()
@@ -243,7 +243,7 @@ def plot_explanation(model_results, postgres_cost, total_plan_num,  subtree_labe
     rects2 = ax.bar(x + width / 2, model_explanation_results, width, label='Reqo')
 
     ax.set_ylabel('Values')
-    ax.set_title('PostgreSQL vs Reqo Explanation Results')
+    ax.set_title('Explanation Performance Comparison')
     ax.set_xticks(x)
     ax.set_xticklabels(metrics, rotation=45)
     ax.legend()
@@ -259,7 +259,8 @@ def plot_explanation(model_results, postgres_cost, total_plan_num,  subtree_labe
 
     add_values(rects1)
     add_values(rects2)
-
+    
+    plt.figure(figsize=(16, 12))
     plt.tight_layout()
     plt.savefig(save_path)
     plt.show()
