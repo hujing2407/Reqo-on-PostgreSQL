@@ -1,10 +1,14 @@
 # Reqo: Robust and Explainable Query Optimization Cost Model
 
 ## Introduction
-Query optimizers have consistently been pivotal in the performance of relational databases.. To this end, we designed Reqo, a novel query optimizer cost model, by using directional GNN and GRU (BiGG) as tree models, learning-to-rank uncertainty quantification technology, and introducing explainability technology into learning-based cost models for the first time. Reqo improves the performance of cost models in three dimensions: cost estimation accuracy, plan selection robustness and cost model explainability. This repository contains the code for a robust query optimization approach as presented in paper Reqo: A Robust and Explainable Query Optimization Cost Model Based on Directional Graph Neural Networks. The repository is a naive prototype of Reqo based on PostgreSQL.
+Query optimizers have consistently been pivotal in the performance of relational databases. To this end, we designed Reqo, a novel query optimizer cost model, by using directional GNN and GRU (BiGG) as tree models, learning-to-rank uncertainty quantification technology, and introducing explainability technology into learning-based cost models for the first time. Reqo improves the performance of cost models in three dimensions: cost estimation accuracy, plan selection robustness and cost model explainability. The repository contains the code for the naive prototype of Reqo based on PostgreSQL.
+
+
+For more details on Reqo, please refer to the paper: [Reqo: A Robust and Explainable Query Optimization Cost Model Based on Directional Graph Neural Networks]().
+Further details on the BiGG tree model can be found in the paper: [A Novel Technique for Query Plan Representation Based on Graph Neural Nets](https://doi.org/10.1007/978-3-031-68323-7_25)
 
 ## PostgreSQL Setup
-This prototype is based on PostgreSQL 15.1. To run the Reqo model effectively, you need to configure a PostgreSQL database.
+This prototype is based on PostgreSQL 15.1. Reqo requires the configuration of a PostgreSQL database to generate the necessary workloads.
 
 ### Step 1: Install PostgreSQL
 First, install PostgreSQL on your system. The installation process varies depending on your operating system. Detailed installation instructions of PostgreSQL can be found in the [PostgreSQL official documentation])(https://www.postgresql.org/download/).
@@ -15,7 +19,7 @@ sudo apt install postgresql postgresql-contrib
 ```
 
 ### Step 2: Create a Database
-Once PostgreSQL is installed, ensure the server is running and create a new database to generate the required workloads. For instance, using the STATS-CEB database setup, as detailed in the [link](https://github.com/Nathaniel-Han/End-to-End-CardEst-Benchmark).
+Once PostgreSQL is installed, ensure the server is running and create a new database to generate the required workloads. For instance, using the STATS-CEB database setup, as detailed in the [End-to-End CardEst Benchmark](https://github.com/Nathaniel-Han/End-to-End-CardEst-Benchmark).
 1. **Download STATS database:**
 ```
 git clone https://github.com/Nathaniel-Han/End-to-End-CardEst-Benchmark.git
@@ -55,7 +59,7 @@ More parameters for model training can be modified directly in the main.py file.
 ### Step 2: Evaluate
 After training, the application employs k-fold cross-validation by default. For each fold, the trained model and its evaluation results on the test set are saved under the `Results` directory, organized into subfolders named after the database. The average evaluation results across all folds are also calculated and stored.
 
-Additionally, comparative visualizations of runtime and explainability metrics against PostgreSQL are generated, as demonstrated in the example below:
+Additionally, comparative visualizations of runtime and explainability metrics against PostgreSQL are generated, as demonstrated in the STATS example below:
 ![Runtime performance (PostgreSQL vs Reqo vs Optimal)](/Results/stats/reqo_with_explanation_runtime_performance.png)
 
 ![Explanation performance (PostgreSQL vs Reqo)](/Results/stats/reqo_with_explanation_explanation_performance.png)
