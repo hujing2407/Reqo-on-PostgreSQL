@@ -1,7 +1,7 @@
 # Reqo: Robust and Explainable Query Optimization Cost Model
 
 ## Introduction
-Query optimizers have consistently been pivotal in the performance of relational databases. To this end, we designed Reqo, a novel query optimizer cost model, by using directional GNN and GRU (BiGG) as tree models, learning-to-rank uncertainty quantification technology, and introducing explainability technology into learning-based cost models for the first time. Reqo improves the performance of cost models in three dimensions: cost estimation accuracy, plan selection robustness and cost model explainability. The repository contains the code for the naive prototype of Reqo based on PostgreSQL.
+Query optimizers have consistently been pivotal in the performance of relational databases. To this end, we designed Reqo, a novel query optimizer cost model, by using bidirectional GNN and GRU (BiGG) as tree models, learning-to-rank uncertainty quantification technology, and introducing explainability technology into learning-based cost models for the first time. Reqo improves the performance of cost models in three dimensions: cost estimation accuracy, plan selection robustness and cost model explainability. The repository contains the code for the naive prototype of Reqo based on PostgreSQL.
 
 
 For more details on Reqo, please refer to the paper: [Reqo: A Robust and Explainable Query Optimization Cost Model Based on Directional Graph Neural Networks]().
