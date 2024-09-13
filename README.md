@@ -5,10 +5,11 @@ Query optimizers have consistently been pivotal in the performance of relational
 
 
 For more details on Reqo, please refer to the paper: [Reqo: A Robust and Explainable Query Optimization Cost Model Based on Directional Graph Neural Networks]().
+
 Further details on the BiGG tree model can be found in the paper: [A Novel Technique for Query Plan Representation Based on Graph Neural Nets](https://doi.org/10.1007/978-3-031-68323-7_25)
 
 ## PostgreSQL Setup
-This prototype is based on PostgreSQL 15.1. Reqo requires the configuration of a PostgreSQL database to generate the necessary workloads.
+This prototype is based on PostgreSQL 15.1. Reqo requires configuring a PostgreSQL database to generate the necessary workloads.
 
 ### Step 1: Install PostgreSQL
 First, install PostgreSQL on your system. The installation process varies depending on your operating system. Detailed installation instructions of PostgreSQL can be found in the [PostgreSQL official documentation])(https://www.postgresql.org/download/).
