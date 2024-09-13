@@ -242,7 +242,7 @@ def plot_explanation(model_results, postgres_cost, total_plan_num,  subtree_labe
     rects1 = ax.bar(x - width / 2, postgres_explanation_results, width, label='PostgreSQL')
     rects2 = ax.bar(x + width / 2, model_explanation_results, width, label='Reqo')
 
-    ax.set_ylabel('Values')
+    ax.set_ylabel('Percentage')
     ax.set_title('Explanation Performance Comparison')
     ax.set_xticks(x)
     ax.set_xticklabels(metrics, rotation=45)
