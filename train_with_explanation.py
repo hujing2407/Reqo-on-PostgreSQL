@@ -116,7 +116,6 @@ def train_with_explanation(dbname, reqo_config, k_i, trainset, testset, save_pat
                 subtree_n += batch_test_expl.shape[0]
             avg_test_loss = float(test_loss_all/step)
 
-        # Conservative Plan Selection
         pred_ev = pred_ev.cpu().numpy()
         pred_iv = pred_iv.cpu().numpy()
         actual_latency = actual_latency.cpu().numpy()
