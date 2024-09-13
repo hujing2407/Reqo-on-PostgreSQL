@@ -61,6 +61,8 @@ More parameters for model training can be modified directly in the main.py file.
 After training, the application employs k-fold cross-validation by default. For each fold, the trained model and its evaluation results on the test set are saved under the `Results` directory, organized into subfolders named after the database. The average evaluation results across all folds are also calculated and stored.
 
 Additionally, comparative visualizations of runtime and explainability metrics against PostgreSQL are generated, as demonstrated in the STATS example below:
-![Runtime performance (PostgreSQL vs Reqo vs Optimal)](/Results/stats/reqo_with_explanation_runtime_performance.png)
 
-![Explanation performance (PostgreSQL vs Reqo)](/Results/stats/reqo_with_explanation_explanation_performance.png)
+<p align="center">
+  <img src="/Results/stats/reqo_with_explanation_runtime_performance.png" alt="Runtime performance (PostgreSQL vs Reqo vs Optimal)" width="49%"/>
+  <img src="/Results/stats/reqo_with_explanation_explanation_performance.png" alt="Explanation performance (PostgreSQL vs Reqo)" width="49%"/>
+</p>
