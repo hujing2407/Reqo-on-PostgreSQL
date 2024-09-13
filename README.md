@@ -12,7 +12,7 @@ Further details on the BiGG tree model can be found in the paper: [A Novel Techn
 This prototype is based on PostgreSQL 15.1. Reqo requires configuring a PostgreSQL database to generate the necessary workloads.
 
 ### Step 1: Install PostgreSQL
-First, install PostgreSQL on your system. The installation process varies depending on your operating system. Detailed installation instructions of PostgreSQL can be found in the [PostgreSQL official documentation])(https://www.postgresql.org/download/).
+First, install PostgreSQL on your system. The installation process varies depending on your operating system. Detailed installation instructions of PostgreSQL can be found in the [PostgreSQL official documentation](https://www.postgresql.org/download/).
 ```
 sudo apt update
 sudo apt install postgresql postgresql-contrib
@@ -66,7 +66,7 @@ Options
 	* `True`: Employ the explainability technique to enhance the model's ability to explain how different subgraphs of the query plan contribute to the final predicted cost, enhancing overall explainability but reducing training speed.
 * `--save_model`: Whether to save the trained model (True or False).
 
-More parameters for model training can be modified directly in the main.py file. During this process, each query is executed with 12 hints, and the generated database statistics, workloads, and datasets will be stored in a folder named after the using database within the `Data` directory. For optimal performance across various workloads, it is advisable to fine-tune the model parameters. A CUDA-compatible GPU is recommended to leverage accelerated computing capabilities.
+More parameters for model training can be modified directly in the main.py file. During this process, each query is executed with 12 hints, and the generated database statistics, workloads, and datasets will be stored in a folder named after the using database within the `Data` directory. A CUDA-compatible GPU is recommended to leverage accelerated computing capabilities.
 
 ### Step 3: Evaluate
 After training, the application employs k-fold cross-validation by default. For each fold, the trained model and its evaluation results on the test set are saved under the `Results` directory, organized into subfolders named after the database. The average evaluation results across all folds are also calculated and stored.
