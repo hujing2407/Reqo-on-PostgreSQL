@@ -227,10 +227,11 @@ def get_explanation_results(pred_expl, expl_labels, testset_index, subtree_label
         round(top1and2_subinfl_ratio / num_samples, 3) # The ratio of model selected Top 1 and 2 influenced subgraphs' latency to the actual Top 1 and 2 influenced subgraphs' latency.
     ]
 
-def plot_explanation(model_results, postgres_cost, total_plan_num,  subtree_labels_load, subtree_join_pair_index, save_path):
+def plot_explanation(model_results, postgres_cost, total_plan_num, subtree_labels_load, subtree_join_pair_index, save_path):
     dataset_index = list(range(total_plan_num))
     expl_labels = np.concatenate(subtree_labels_load)
-    postgres_explanation_results = get_explanation_results(postgres_cost, expl_labels, dataset_index, subtree_labels_load, subtree_join_pair_index)
+    postgres_explanation_results = get_explanation_results(postgres_cost, expl_labels, dataset_index,
+                                                           subtree_labels_load, subtree_join_pair_index)
     model_explanation_results = model_results[22:]
 
     metrics = ['top1_acc', 'top1and2_acc', 'top1or2_acc', 'top1_subinfl_ratio', 'top1and2_subinfl_ratio']
@@ -238,7 +239,7 @@ def plot_explanation(model_results, postgres_cost, total_plan_num,  subtree_labe
     x = np.arange(len(metrics))
     width = 0.35
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(16,12))
     rects1 = ax.bar(x - width / 2, postgres_explanation_results, width, label='PostgreSQL')
     rects2 = ax.bar(x + width / 2, model_explanation_results, width, label='Reqo')
 
@@ -246,7 +247,7 @@ def plot_explanation(model_results, postgres_cost, total_plan_num,  subtree_labe
     ax.set_title('Explanation Performance Comparison')
     ax.set_xticks(x)
     ax.set_xticklabels(metrics, rotation=45)
-    ax.legend()
+    ax.legend(loc='lower right')
 
     def add_values(rects):
         for rect in rects:
@@ -259,7 +260,7 @@ def plot_explanation(model_results, postgres_cost, total_plan_num,  subtree_labe
 
     add_values(rects1)
     add_values(rects2)
-    
+
     plt.tight_layout()
     plt.savefig(save_path)
     plt.show()
