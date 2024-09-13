@@ -38,7 +38,19 @@ CREATE DATABASE stats;
 ```
 
 ## Model Setup
-### Step 1: Run Reqo
+### Step 1: Download Reqo
+1. **Clone the repository:**
+```
+git clone https://github.com/BaomingChang/Reqo-on-PostgreSQL.git
+```
+
+2. **Install required Python packages:**
+```
+cd Reqo-on-PostgreSQL
+pip install -r requirements.txt
+```
+
+### Step 2: Run Reqo
 The prototype can be run by executing the command below. This will generate the necessary workloads and datasets, and then train and evaluate the model once the requisite PostgreSQL server configurations, the location of the query file, and specific model preferences are provided.
 ```bash
 python main.py --dbname your_database_name --user your_username --password your_password --host your_host --port your_port --query_file_path path_to_your_query_file --explain_or_not True_or_False --save_model True_or_False
@@ -55,9 +67,9 @@ Options
 	* `True`: Employ the explainability technique to enhance the model's ability to explain how different subgraphs of the query plan contribute to the final predicted cost, enhancing overall explainability but reducing training speed.
 * `--save_model`: Whether to save the trained model (True or False).
 
-More parameters for model training can be modified directly in the main.py file. During this process, each query is executed with 12 hints, and the generated database statistics, workloads, and datasets will be stored in a folder named after the using database within the `Data` directory.
+More parameters for model training can be modified directly in the main.py file. During this process, each query is executed with 12 hints, and the generated database statistics, workloads, and datasets will be stored in a folder named after the using database within the `Data` directory. A CUDA-compatible GPU is recommended to leverage accelerated computing capabilities.
 
-### Step 2: Evaluate
+### Step 3: Evaluate
 After training, the application employs k-fold cross-validation by default. For each fold, the trained model and its evaluation results on the test set are saved under the `Results` directory, organized into subfolders named after the database. The average evaluation results across all folds are also calculated and stored.
 
 Additionally, comparative visualizations of runtime and explainability metrics against PostgreSQL are generated, as demonstrated in the STATS example below:
