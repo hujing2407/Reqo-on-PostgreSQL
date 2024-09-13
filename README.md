@@ -38,7 +38,7 @@ CREATE DATABASE stats;
 ```
 
 ## Model Setup
-### Step 1: Download Reqo
+### Step 1: Install Reqo
 1. **Clone the repository:**
 ```
 git clone https://github.com/BaomingChang/Reqo-on-PostgreSQL.git
