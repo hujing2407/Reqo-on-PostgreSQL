@@ -1,0 +1,35 @@
+Cost Estimation Results:
+------------------------------
+Mean Q-Error (Top 50%): 1.2652999997138976
+Mean Q-Error (Top 90%): 1.5272000074386596
+Mean Q-Error (Top 99%): 1.91910001039505
+Overall Mean Q-Error: 2.5485000252723693
+50th Percentile Q-Error: 1.4976
+90th Percentile Q-Error: 2.7408
+99th Percentile Q-Error: 21.5282
+Maximum Q-Error: 233.90610008239747
+Spearman Correlation: 0.9615
+
+Robustness Results:
+------------------------------
+Mean Plan Suboptimality (Top 50%): 1.0047999978065492
+Mean Plan Suboptimality (Top 90%): 1.0442999958992005
+Mean Plan Suboptimality (Top 99%): 1.087999987602234
+Overall Mean Plan Suboptimality: 1.1141999959945679
+50th Percentile Plan Suboptimality: 1.0187000155448913
+90th Percentile Plan Suboptimality: 1.2990000009536744
+99th Percentile Plan Suboptimality: 2.3907000184059144
+Maximum Plan Suboptimality: 4.690500068664551
+Improved Runtime Percentage: 0.313
+Regressed Runtime Percentage: 0.1846
+Model vs. PostgreSQL Runtime Ratio: 0.7197
+Model vs. Optimal Runtime Ratio: 1.1262
+PostgreSQL vs. Optimal Runtime Ratio: 1.6034
+
+Explanation Results:
+------------------------------
+Top1 Accuracy: 0.9250999999999999
+Top1and2 Accuracy: 0.8285000000000002
+Top1or2 Accuracy: 0.9994999999999999
+Top1 Subinfluence Ratio: 0.9782
+Top1and2 Subinfluence Ratio: 0.9921000000000001
