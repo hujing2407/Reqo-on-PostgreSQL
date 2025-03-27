@@ -1,7 +1,7 @@
-# Reqo: Robust and Explainable Query Optimization Cost Model
+# Reqo: A Robust and Explainable Query Optimization Cost Model
 
 ## Introduction
-Query optimizers have consistently been pivotal in the performance of relational databases. To this end, we designed Reqo, a novel query optimizer cost model, by using bidirectional GNN and GRU (BiGG) as tree models, a learning-to-rank uncertainty-aware cost model, and introducing an explainability technology into learning-based cost models for the first time. Reqo improves the performance of cost models in three dimensions: cost estimation accuracy, plan selection robustness and cost model explainability. The repository contains the code for the naive prototype of Reqo based on PostgreSQL.
+Query optimizers have consistently been pivotal in the performance of relational databases. To this end, we designed Reqo, a novel query optimizer cost model, by using bidirectional GNN and GRU (BiGG) as tree models, a learning-to-rank uncertainty-aware cost model, and introducing an explainability technology into learning-based cost models for the first time. Reqo improves the performance of cost models in three dimensions: cost estimation accuracy, plan selection robustness and cost model explainability. The repository contains the code for the naive prototype of Reqo based on PostgreSQL and a demo REOpt.
 
 
 For more details on Reqo, please refer to the paper: [Reqo: A Robust and Explainable Query Optimization Cost Model](https://doi.org/10.48550/arXiv.2501.17414).
@@ -76,4 +76,13 @@ Additionally, comparative visualizations of runtime and explainability metrics a
 <p align="center">
   <img src="/Results/stats/reqo_with_explanation_runtime_performance.png" alt="Runtime performance (PostgreSQL vs Reqo vs Optimal)" width="49%"/>
   <img src="/Results/stats/reqo_with_explanation_explanation_performance.png" alt="Explanation performance (PostgreSQL vs Reqo)" width="49%"/>
+</p>
+
+## REOpt: A Prototype Tool for Robust and Explainable Workload Optimization
+REOpt is a demonstration system built upon the techniques introduced in Reqo.
+
+<p align="center">
+  <img src="/Utils/UI/workload_optimizer.jpg" alt="REOpt: Workload Optimizer" width="100%"/>
+  <img src="/Utils/UI/plan_analyzer.jpg" alt="REOpt: Plan Analyzer" width="100%"/>
+  <img src="/Utils/UI/plan_advisor.jpg" alt="REOpt: Plan Advisor" width="100%"/>
 </p>
