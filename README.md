@@ -79,10 +79,19 @@ Additionally, comparative visualizations of runtime and explainability metrics a
 </p>
 
 ## REOpt: A Prototype Tool for Robust and Explainable Workload Optimization
-REOpt is a demonstration system built upon the techniques introduced in Reqo.
+REOpt is a demonstration system built upon the techniques introduced in Reqo. Its user interface appears as follows:
 
+Workload Optimizer:
 <p align="center">
-  <img src="/Utils/UI/workload_optimizer.jpg" alt="REOpt: Workload Optimizer" width="100%"/>
-  <img src="/Utils/UI/plan_analyzer.jpg" alt="REOpt: Plan Analyzer" width="100%"/>
-  <img src="/Utils/UI/plan_advisor.jpg" alt="REOpt: Plan Advisor" width="100%"/>
+  <img src="/Utils/UI/workload_optimizer.JPG" alt="REOpt: Workload Optimizer" width="80%"/>
+</p>
+
+Plan Analyzer:
+<p align="center">
+  <img src="/Utils/UI/plan_analyzer.JPG" alt="REOpt: Plan Analyzer" width="80%"/>
+</p>
+
+Plan Advisor:
+<p align="center">
+  <img src="/Utils/UI/plan_advisor.JPG" alt="REOpt: Plan Advisor" width="80%"/>
 </p>
