@@ -115,7 +115,7 @@ def postgresql_database_statistic_generator(db_params):
                 print(f"Data type {data_type} not supported for column {full_column_name}.")
                 pass
 
-    save_path = 'Data/' + db_params['dbname'] + '/database_statistic'
+    save_path = 'Data/' + db_params['dbname'] + '/database_statistics'
     os.makedirs(save_path, exist_ok=True)
     np.save(save_path + "/tables_index", tables_index)
     np.save(save_path + "/tables_index_all", tables_index_all)
