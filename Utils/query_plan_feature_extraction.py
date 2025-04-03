@@ -448,6 +448,11 @@ def Subtree_traversal(tree, L, index):
         L.append(tree)
         if node_index == 0:
             return L
+    # # If treat a leaf node as a subtree.
+    # elif 'Plans' not in tree:
+    #     L.append(tree)
+    #     if node_index == 0:
+    #         return L
     else:
         if node_index == 0:
             if L != []:
@@ -514,6 +519,9 @@ def Join_only_tree(tree, join_tree):
                 join_tree = {'joins': join_tree_child, 'label': tree["Actual Total Time"] * 1}
             else:
                 join_tree = {'label': tree["Actual Total Time"] * 1}
+    # # If treat a leaf node as a subtree.
+    # else:
+    #     join_tree = {'label': tree["Actual Total Time"] * 1}
     return join_tree
 
 def Join_p_c_pair(join_tree, index, post_t_index, post_t_index_dic, L_pair_index, L_pair_label):
