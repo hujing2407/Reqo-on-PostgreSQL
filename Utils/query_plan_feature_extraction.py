@@ -621,6 +621,11 @@ def encoding_generate(tree, index, post_t_index, post_t_index_dic, L_n, L_e, tab
     # Extract and append node features to L_n
     node_feature = Node_info_extract(tree, tables_index, tables_index_all, columns_index, attribute_range, nodes, query_plans_stats)
     L_n.append(node_feature)
+    
+    # # If treat a leaf node as a subtree.
+    # if node_index == 0 and L_e == []:
+    #     L_e.append([node_index, node_index])
+    
     return index, L_n, L_e, post_t_index, post_t_index_dic
 
 def generate_dataset(dbname):
