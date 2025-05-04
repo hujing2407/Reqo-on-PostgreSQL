@@ -25,7 +25,7 @@ def load_dataset(dataset, batch_size, shuffle_or_not):
 
 def train(dbname, reqo_config, k_i, trainset, testset, save_path, query_plans_index_num_i, query_postgres_cost_i, save_model):
     batch_size = reqo_config["batch_size"]
-    table_columns_number = torch.tensor(np.load(f'Data/{dbname}/database_statistics/table_columns_number.npy')).to(device)
+    table_columns_number = np.load(f'Data/{dbname}/database_statistics/table_columns_number.npy')
 
     train_loader, max_sup_train_label, min_sup_train_label = load_dataset(trainset, batch_size,  True)
     test_loader, max_sup_test_label, min_sup_test_label = load_dataset(testset, batch_size, False)
