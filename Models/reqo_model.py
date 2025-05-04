@@ -98,9 +98,6 @@ class Estimator(torch.nn.Module):
         self.fs = Sequential(Linear(2, 8), Linear(8, 1), Sigmoid())
         self.dropout = Dropout(p=self.fcn_dropout_rate)
 
-        self.fs = Sequential(Linear(2, 8), Linear(8, 1), Sigmoid())
-        self.dropout = Dropout(p=self.fcn_dropout_rate)
-
     def forward(self, x):
         for i in range(self.n_fcn_layers-1):
             x = self.dropout(torch.relu(self.fcn_layers[i](x)))
