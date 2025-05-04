@@ -80,36 +80,37 @@ class BiGG(torch.nn.Module):
         x = self.aggr_layer(x, batch_index_all)
 
         y = x[global_tree_index]
-        M = torch.zeros(batch_local_labels.shape[0], x.shape[1]*2, device=device)
 
-        sg_num = 0
-        for i, g_idx in enumerate(global_tree_index):
-            subtree_num = g_idx - sg_num + 1
-            subtree_x = x[sg_num:g_idx + 1]
-            if subtree_num > 1:
-                global_x = x[g_idx].unsqueeze(0)
-                M[sg_num:sg_num + subtree_num] = torch.cat((subtree_x, global_x.expand(subtree_num, -1)), dim=1)
-            else:
-                M[sg_num] = torch.cat((x[g_idx], x[g_idx]), dim=0)
-            sg_num += subtree_num
-
+        g = torch.tensor(global_tree_index, device=device)
+        starts = torch.cat([g.new_tensor([-1]), g[:-1]])
+        counts = g - starts 
+        tree_ids = torch.repeat_interleave(torch.arange(len(g), device=device), counts)
+        global_idx = g[tree_ids]
+        M = torch.cat([x, x[global_idx]], dim=1)
         return y, M, batch_global_labels, batch_local_labels
 
     def prepare_batches_for_subtrees(self, batch_subtree_index, subtree_index, subtree_labels):
-        batch_size = len(batch_subtree_index)
-        batch_index_all, global_tree_index, batch_global_labels, batch_local_labels = [], [], [], []
-        num = 0
-        for i in range(batch_size):
-            batch_subtree_labels_per_tree = subtree_labels[batch_subtree_index[i]].to(device)
-            assert torch.max(batch_subtree_labels_per_tree) == batch_subtree_labels_per_tree[-1], "Last element is not max value!"
-            batch_global_labels.append(torch.max(batch_subtree_labels_per_tree))
-            batch_local_labels.append(batch_subtree_labels_per_tree / torch.max(batch_subtree_labels_per_tree))
-            batch_index_per_tree = subtree_index[batch_subtree_index[i]].to(device)
-            batch_index_all.extend(batch_index_per_tree + num)
-            num += int(batch_index_per_tree.max().item() + 1)
-            global_tree_index.append(num - 1)
+        B = len(batch_subtree_index)
+        labels_list = [subtree_labels[i].to(device) for i in batch_subtree_index]
+        index_list = [subtree_index[i].to(device) for i in batch_subtree_index]
+        all_labels, all_index = torch.cat(labels_list, 0), torch.cat(index_list, 0)
 
-        return torch.tensor(batch_index_all, device=device), global_tree_index, torch.tensor(batch_global_labels, device=device), torch.cat(batch_local_labels)
+        label_counts = torch.tensor([l.size(0) for l in labels_list], device=device)
+        tree_ids = torch.repeat_interleave(torch.arange(B, device=device), label_counts)
+
+        out = all_labels.new_full((B,), -float('inf'))
+        global_labels = torch.scatter_reduce(out, 0, tree_ids, all_labels, 'amax', include_self=True)
+        local_labels = all_labels / global_labels[tree_ids]
+
+        index_counts = torch.tensor([idx.size(0) for idx in index_list], device=device)
+        sizes, ends = torch.tensor([idx.max().item() + 1 for idx in index_list], device=device), None
+        ends = torch.cumsum(sizes, 0);
+        starts = ends - sizes
+        batched_index = all_index + torch.repeat_interleave(starts, index_counts)
+
+        global_tree_index = (ends - 1).tolist()
+
+        return batched_index, global_tree_index, global_labels, local_labels
 
     def predict_without_explainer(self, node_features, edge_index, batch_index):
         x = node_features
