@@ -46,7 +46,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     reqo_config = {'batch_size': 128, 'learning_rate': 0.001,
-              'encoder_attention_heads': 8, 'encoder_conv_layers': 4, 'encoder_gnn_embedding_dim': 256, 'encoder_gnn_dropout_rate': 0.1, 'encoder_dirgnn_alpha': 0.3, 'encoder_node_type_embedding_dim': 16, 'encoder_column_embedding_dim': 8,
+              'encoder_attention_heads': 1, 'encoder_conv_layers': 3, 'encoder_gnn_embedding_dim': 256, 'encoder_gnn_dropout_rate': 0.1, 'encoder_dirgnn_alpha': 0.3, 'encoder_node_type_embedding_dim': 16, 'encoder_column_embedding_dim': 8,
               'explainer_fcn_layers': 4, 'explainer_explanation_embedding_size': 512, 'explainer_fcn_dropout_rate': 0.1,
               'estimator_fcn_layers': 4, 'estimator_estimation_embedding_size': 512, 'estimator_fcn_dropout_rate': 0.1}
     main(args.dbname, args.user, args.password, args.host, args.port, args.query_file_path, args.explain_or_not, args.save_model, reqo_config)
