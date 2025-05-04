@@ -1,8 +1,8 @@
 import torch
 from torch.nn import Linear, ModuleList, MaxPool2d, Dropout, Sequential, Sigmoid, Softplus
 from torch_geometric.nn import TransformerConv, BatchNorm, GRUAggregation
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 from .DirGNNConv import DirGNNConv
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class Feature_encoder(torch.nn.Module):
     def __init__(self, encoder_params):
