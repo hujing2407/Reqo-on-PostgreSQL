@@ -26,7 +26,7 @@ def load_dataset(dataset, batch_size, shuffle_or_not):
 def train_with_explanation(dbname, reqo_config, k_i, trainset, testset, save_path, query_plans_index_num_i, query_postgres_cost_i,
                            subtree_num_load_i, testset_index, subtree_index_load, subtree_labels_load, subtree_join_pair_index, save_model):
     batch_size = reqo_config["batch_size"]
-    table_columns_number = torch.tensor(np.load(f'Data/{dbname}/database_statistics/table_columns_number.npy')).to(device)
+    table_columns_number = np.load(f'Data/{dbname}/database_statistics/table_columns_number.npy')
 
     testset_size = len(testset)
     testset_subtree_size = sum(subtree_num_load_i)
