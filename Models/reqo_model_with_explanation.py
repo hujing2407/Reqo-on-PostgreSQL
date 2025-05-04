@@ -131,12 +131,10 @@ class Explainer(torch.nn.Module):
         explanation_embedding_dim = explainer_params["explainer_explanation_embedding_dim"]
         self.fcn_dropout_rate = explainer_params["explainer_fcn_dropout_rate"]
         self.explainer_layers.append(Linear(embedding_dim, explanation_embedding_dim))
-        for i in range(self.n_explainer_layers - 1):
-            if i != self.n_explainer_layers - 2:
-                self.explainer_layers.append(Linear(explanation_embedding_dim, int(explanation_embedding_dim / 2)))
-                explanation_embedding_dim = int(explanation_embedding_dim / 2)
-            else:
-                self.explainer_layers.append(Linear(explanation_embedding_dim, 1))
+        dims = [explanation_embedding_dim // (2 ** (i + 1)) for i in range(self.n_explainer_layers - 2)] + [1]
+        for out_dim in dims:
+            self.explainer_layers.append(Linear(explanation_embedding_dim, out_dim))
+            explanation_embedding_dim = out_dim
         self.dropout = Dropout(p=self.fcn_dropout_rate)
 
     def forward(self, x):
@@ -157,31 +155,18 @@ class Estimator(torch.nn.Module):
         estimation_embedding_dim = estimator_params["estimator_estimation_embedding_dim"]
         self.fcn_dropout_rate = estimator_params["estimator_fcn_dropout_rate"]
         self.fcn_layers.append(Linear(embedding_dim, estimation_embedding_dim))
-        for i in range(self.n_fcn_layers - 1):
-            if i == 0:
-                self.fcn_layers.append(Linear(estimation_embedding_dim, int(estimation_embedding_dim / 4)))
-                estimation_embedding_dim = int(estimation_embedding_dim / 4)
-            else:
-                self.fcn_layers.append(Linear(estimation_embedding_dim, int(estimation_embedding_dim / 2)))
-                estimation_embedding_dim = int(estimation_embedding_dim / 2)
+        divs = [4] + [2] * (self.n_fcn_layers - 2)
+        for div in divs:
+            out_dim = estimation_embedding_dim // div
+            self.fcn_layers.append(Linear(estimation_embedding_dim, out_dim))
+            estimation_embedding_dim = out_dim
 
-        estimation_embedding_dim_e = estimation_embedding_dim
-        estimation_embedding_dim_v = estimation_embedding_dim
-        for i in range(3):
-            # Branch for latency estimation
-            if i != 2:
-                self.fcn_layers_for_e.append(Linear(estimation_embedding_dim_e, int(estimation_embedding_dim_e / 2)))
-                estimation_embedding_dim_e = int(estimation_embedding_dim_e / 2)
-            else:
-                self.fcn_layers_for_e.append(Linear(estimation_embedding_dim_e, 1))
-            # Branch for variance(uncertainty) quantification
-            if i != 2:
-                self.fcn_layers_for_v.append(Linear(estimation_embedding_dim_v, int(estimation_embedding_dim_v / 2)))
-                estimation_embedding_dim_v = int(estimation_embedding_dim_v / 2)
-            else:
-                self.fcn_layers_for_v.append(Linear(estimation_embedding_dim_v, 1))
+        dims = [estimation_embedding_dim // (2 ** i) for i in range(3)]
+        for in_dim, out_dim in zip(dims, dims[1:] + [1]):
+            self.fcn_layers_for_e.append(Linear(in_dim, out_dim))
+            self.fcn_layers_for_v.append(Linear(in_dim, out_dim))
+
         self.fcn_layers_for_v_activation = Softplus()
-
         self.fs = Sequential(Linear(2, 8), Linear(8, 1), Sigmoid())
         self.dropout = Dropout(p=self.fcn_dropout_rate)
 
