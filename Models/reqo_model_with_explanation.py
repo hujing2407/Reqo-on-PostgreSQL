@@ -28,15 +28,13 @@ class Feature_encoder(torch.nn.Module):
 
         # Reshape and transpose once for column encoding
         node_column_enc = node_features[3].view(node_num, self.column_num, 8).transpose(0, 1)
-        node_column_new_enc = torch.stack([torch.relu(layer(node_column_enc[i])) for i, layer in enumerate(self.column_layers)])
+        W = torch.stack([layer.weight for layer in self.column_layers], dim=0)
+        node_column_new_enc = torch.relu(torch.bmm(node_column_enc, W.transpose(1, 2)))
 
-        node_table_enc = []
-        start_idx = 0
-        for num in table_columns_number:
-            pooled = MaxPool2d((num, 1))(node_column_new_enc[start_idx:start_idx + num].transpose(0, 1)).squeeze()
-            node_table_enc.append(pooled)
-            start_idx += num
-        node_table_enc = torch.cat(node_table_enc, dim=1)
+        X = node_column_new_enc.permute(1, 0, 2)
+        chunks = torch.split(X, tuple(table_columns_number), dim=1)
+        pooled = [seg.max(dim=1).values for seg in chunks]
+        node_table_enc = torch.cat(pooled, dim=1)
 
         # Concatenate all features
         encoded_node_features = torch.cat([node_type_enc,node_stats_enc,  node_table_used, node_table_enc], dim=1)
