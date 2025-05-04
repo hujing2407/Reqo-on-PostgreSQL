@@ -31,9 +31,8 @@ class Feature_encoder(torch.nn.Module):
         W = torch.stack([layer.weight for layer in self.column_layers], dim=0)
         node_column_new_enc = torch.relu(torch.bmm(node_column_enc, W.transpose(1, 2)))
 
-        X = node_column_new_enc.permute(1, 0, 2)
-        chunks = torch.split(X, tuple(table_columns_number), dim=1)
-        pooled = [seg.max(dim=1).values for seg in chunks]
+        chunks = torch.split(node_column_new_enc.permute(1, 0, 2), tuple(table_columns_number), dim=1)
+        pooled = [table.max(dim=1).values for table in chunks]
         node_table_enc = torch.cat(pooled, dim=1)
 
         # Concatenate all features
