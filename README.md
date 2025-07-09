@@ -1,12 +1,7 @@
 # Reqo: A Robust and Explainable Query Optimization Cost Model
 
 ## Introduction
-Query optimizers have consistently been pivotal in the performance of relational databases. To this end, we designed Reqo, a novel query optimizer cost model, by using bidirectional GNN and GRU (BiGG) as tree models, a learning-to-rank uncertainty-aware cost model, and introducing an explainability technology into learning-based cost models for the first time. Reqo improves the performance of cost models in three dimensions: cost estimation accuracy, plan selection robustness and cost model explainability. The repository contains the code for the naive prototype of Reqo based on PostgreSQL.
-
-
-For more details on Reqo, please refer to the paper: [Reqo: A Robust and Explainable Query Optimization Cost Model](https://doi.org/10.48550/arXiv.2501.17414).
-
-Further details on the BiGG tree model can be found in the paper: [A Novel Technique for Query Plan Representation Based on Graph Neural Nets](https://doi.org/10.1007/978-3-031-68323-7_25)
+Query optimizers are critical for relational database performance. To this end, we introduce Reqo, a novel cost model for query optimization that employs Bidirectional Graph Neural Networks (Bi-GNN) combined with Gated Recurrent Units (GRU) as tree models, integrates a learning-to-rank uncertainty-aware cost estimator, and, for the first time, incorporates explainability techniques into learning-based cost models and generates hints for optimizing future plan generation. Reqo improves the performance of cost models in three dimensions: cost estimation accuracy, plan selection robustness and cost model explainability. The repository contains the code for the naive prototype of Reqo based on PostgreSQL.
 
 ## PostgreSQL Setup
 This prototype is based on PostgreSQL 15.1. Reqo requires configuring a PostgreSQL database to generate the necessary workloads.
@@ -68,7 +63,7 @@ Options
 
 More parameters for model training can be modified directly in the main.py file. During this process, each query is executed with 12 hints, and the generated database statistics, workloads, and datasets will be stored in a folder named after the using database within the `Data` directory. A CUDA-compatible GPU is recommended to leverage accelerated computing capabilities.
 
-### Step 3: Evaluate
+### Step 3: Evaluate Reqo
 After training, the application employs k-fold cross-validation by default. For each fold, the trained model and its evaluation results on the test set are saved under the `Results` directory, organized into subfolders named after the database. The average evaluation results across all folds are also calculated and stored.
 
 Additionally, comparative visualizations of runtime and explainability metrics against PostgreSQL are generated, as demonstrated in the STATS example below:
