@@ -98,9 +98,9 @@ def generate_postgresql_workload_with_hints(db_params, query_file_path):
     np.save(f'{file_base}_index.npy', np.array(executed_query_indices, dtype=object))
     np.save(f'{file_base}_plans_index.npy', np.array(executed_query_plan_indices, dtype=object))
 
-    print(f'A total of {total_queries_executed} query plans with hints were executed')
+    print(f'A total of {total_queries_executed} queries with hints were executed')
     print(f'A total of {total_query_plans_executed} query plans were executed')
-    print(f'A total of {total_timeouts} queries timed out')
+    print(f'A total of {total_timeouts} query plans timed out')
 
 def generate_postgresql_workload(db_params, query_file_path):
     queries = load_query_for_analyze(query_file_path)
@@ -129,5 +129,6 @@ def generate_postgresql_workload(db_params, query_file_path):
     np.save(f'{file_base}_plans.npy', np.array(executed_query_plans, dtype=object))
     np.save(f'{file_base}_index.npy', np.array(executed_query_indices, dtype=object))
 
-    print(f'A total of {total_queries_executed} query plans were executed')
-    print(f'A total of {total_timeouts} queries timed out')
+    print(f'A total of {total_queries_executed} queries were executed')
+    print(f'A total of {total_timeouts} query plans timed out')
+
