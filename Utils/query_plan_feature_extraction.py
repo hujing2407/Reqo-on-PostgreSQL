@@ -763,7 +763,6 @@ def generate_dataset_with_explanation(dbname):
                                batch.edge_index.tolist(),
                                sample_index_i])
                 dataset_sample_index_i.append(batch.batch.tolist())
-                print(batch.batch)
                 sample_index_i += 1
             L_pair_index, L_pair_label, L_label = join_explanation_generate(tree)
 
@@ -809,6 +808,7 @@ if __name__ == '__main__':
     dbname = 'stats'
     # generate_dataset(dbname)
     # generate_dataset_with_explanation(dbname)
+
 
 
 
