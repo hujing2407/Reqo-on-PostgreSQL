@@ -14,6 +14,8 @@ from torch_geometric.loader import DataLoader
 from concurrent.futures import ProcessPoolExecutor
 from itertools import repeat
 from functools import lru_cache
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("MKL_NUM_THREADS", "1")
 
 def load_database_info(dbname):
     file_path = f'../Data/{dbname}/database_statistics/'
@@ -812,3 +814,4 @@ if __name__ == '__main__':
     dbname = 'stats'
     generate_dataset(dbname)
     # generate_dataset_with_explanation(dbname)
+
