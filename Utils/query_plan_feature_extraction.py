@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import os
 import random
 import re
@@ -15,7 +16,7 @@ from itertools import repeat
 from functools import lru_cache
 
 def load_database_info(dbname):
-    file_path = f'./Data/{dbname}/database_statistics/'
+    file_path = f'../Data/{dbname}/database_statistics/'
     tables_index = np.load(file_path + "tables_index.npy", allow_pickle=True).item()
     tables_index_all = np.load(file_path + "tables_index_all.npy", allow_pickle=True).item()
     columns_index = np.load(file_path + "columns_index.npy", allow_pickle=True).item()
@@ -133,6 +134,11 @@ def str_value_encoding(values, model_path):
         encoded_value = -2
     return encoded_value
 
+def str_to_unit_float(s: str) -> float:
+    digest = hashlib.blake2b(s.encode('utf-8'), digest_size=8).digest()
+    n = int.from_bytes(digest, 'big')
+    return n / (1 << 64)
+
 def Text_extraction(text, tables_index, tables_index_all, columns_index, attribute_range):
     enc_column = [0]*(int(len(columns_index)*8))
     enc_table = [0] * len(tables_index)
@@ -163,10 +169,10 @@ def Text_extraction(text, tables_index, tables_index_all, columns_index, attribu
                         r = v[1] - v[0]
                         if r == 0:
                             r = 1
-                            p_v = float(re.findall(r'-?\d+\.?\d*e?-?\d*?', p[2])[0])
-                        else:
-                            r = v[1] - v[0]
-                            p_v = ' '.join(p[2:]).split('::')[0].replace('\'', '')
+                        p_v = float(re.findall(r'-?\d+\.?\d*e?-?\d*?', p[2])[0])
+                    else:
+                        r = v[1] - v[0]
+                        p_v = ' '.join(p[2:]).split('::')[0].replace('\'', '')
                         try:
                             p_v = datetime.strptime(p_v, '%Y-%m-%d')
                         except:
@@ -251,7 +257,10 @@ def Text_extraction(text, tables_index, tables_index_all, columns_index, attribu
                         p_v = ' '.join(p[2:]).split('::')[0][1:-1].split('%')
                         while '' in p_v:
                             p_v.remove('')
-                        str_vec = str_value_encoding(p_v, v[0])
+                        if v[0] != 'None':
+                            str_vec = str_value_encoding(p_v, v[0])
+                        else:
+                            str_vec = str_to_unit_float(' '.join(p_v))
                         operators = ['join', '=', '>', '<', '~~', '!~~', '<>', 'in']
                         op_i = operators.index(p[1])
                         enc_column[columns_index[p[0]]*8 + op_i] = str_vec
@@ -671,7 +680,7 @@ def generate_dataset(dbname):
     # Load database statistics
     tables_index, tables_index_all, columns_index, columns_list, attribute_range, nodes = load_database_info(dbname)
     # Load query plans
-    workloads_path_base = f'./Data/{dbname}/workloads/postgresql_{dbname}_executed_query'
+    workloads_path_base = f'../Data/{dbname}/workloads/postgresql_{dbname}_executed_query'
     query_plans = np.load(f'{workloads_path_base}_plans.npy', allow_pickle=True)
     query_plans_index = np.load(f'{workloads_path_base}_plans_index.npy', allow_pickle=True)
     query_index = np.load(f'{workloads_path_base}_index.npy', allow_pickle=True)
@@ -707,7 +716,7 @@ def generate_dataset(dbname):
 
     query_plans_index_num_new = [len(s) for s in query_plans_index_new]
 
-    dataset_path_base = f'./Data/{dbname}/datasets/'
+    dataset_path_base = f'../Data/{dbname}/datasets/'
     os.makedirs(dataset_path_base, exist_ok=True)
     np.save(f'{dataset_path_base}postgresql_{dbname}_executed_query_plans_dataset.npy', np.array(dataset, dtype=object))
     np.save(f'{dataset_path_base}postgresql_{dbname}_executed_query_index.npy', np.array(query_index_new, dtype=object))
@@ -719,7 +728,7 @@ def generate_dataset_with_explanation(dbname):
     # Load database statistics
     tables_index, tables_index_all, columns_index, columns_list, attribute_range, nodes = load_database_info(dbname)
     # Load query plans
-    workloads_path_base = f'./Data/{dbname}/workloads/postgresql_{dbname}_executed_query'
+    workloads_path_base = f'../Data/{dbname}/workloads/postgresql_{dbname}_executed_query'
     query_plans = np.load(f'{workloads_path_base}_plans.npy', allow_pickle=True)
     query_plans_index = np.load(f'{workloads_path_base}_plans_index.npy', allow_pickle=True)
     query_index = np.load(f'{workloads_path_base}_index.npy', allow_pickle=True)
@@ -780,7 +789,7 @@ def generate_dataset_with_explanation(dbname):
     query_plans_index_num_new = [len(s) for s in query_plans_index_new]
     query_plans_subtrees_num = [len(s) for s in dataset_subtree_labels]
 
-    dataset_path_base = f'./Data/{dbname}/datasets/'
+    dataset_path_base = f'../Data/{dbname}/datasets/'
     os.makedirs(dataset_path_base, exist_ok=True)
     np.save(f'{dataset_path_base}postgresql_{dbname}_executed_query_plans_dataset_with_explanation.npy', np.array(dataset, dtype=object))
     np.save(f'{dataset_path_base}postgresql_{dbname}_executed_query_index_with_explanation.npy', np.array(query_index_new, dtype=object))
@@ -797,5 +806,5 @@ def generate_dataset_with_explanation(dbname):
 
 if __name__ == '__main__':
     dbname = 'stats'
-    generate_dataset(dbname)
-    # generate_dataset_with_explanation(dbname)
+    # generate_dataset(dbname)
+    generate_dataset_with_explanation(dbname)
