@@ -149,20 +149,20 @@ def Text_extraction(text, tables_index, tables_index_all, columns_index, attribu
             if p[2] in columns_index:
                 enc_column[columns_index[p[0]]*8] = 1
                 enc_column[columns_index[p[2]]*8] = 1
-                oprators = ['join', '=', '<', '<=', '>', '>=', '<>', 'in']
+                operators = ['join', '=', '<', '<=', '>', '>=', '<>', 'in']
                 if p[1] != '=':
-                    op_i = oprators.index(p[1])
+                    op_i = operators.index(p[1])
                     enc_column[columns_index[p[0]]*8 + op_i] = 1
                     enc_column[columns_index[p[2]]*8 + op_i] = 1
             else:
                 v = attribute_range[p[0]]
                 if len(v) == 3:
-                    oprators = ['join', '=', '<', '<=', '>', '>=', '<>', 'in']
+                    operators = ['join', '=', '<', '<=', '>', '>=', '<>', 'in']
                     if p[2] == 'ANY':
-                        enc_column[columns_index[p[0]] * 8 + oprators.index(p[1])] = 2
+                        enc_column[columns_index[p[0]] * 8 + operators.index(p[1])] = 2
                         continue
                     if p[2] == '(SubPlan':
-                        enc_column[columns_index[p[0]] * 8 + oprators.index(p[1])] = 0.5
+                        enc_column[columns_index[p[0]] * 8 + operators.index(p[1])] = 0.5
                         continue
 
                     if type(v[0]) != datetime:
@@ -237,6 +237,11 @@ def Text_extraction(text, tables_index, tables_index_all, columns_index, attribu
                             num = 1 + (p_v - v[0]) / r
                         enc_column[columns_index[p[0]]*8 + 6] = num
                 else:
+                    operators = ['join', '=', '>', '<', '~~', '!~~', '<>', 'in']
+                    if p[2] == 'ANY':
+                        enc_column[columns_index[p[0]] * 8 + operators.index(p[1])] = 2
+                        continue
+
                     if '{' in p[2] and p[1] == '=':
                         in_num = 0
                         num = 0
@@ -261,7 +266,6 @@ def Text_extraction(text, tables_index, tables_index_all, columns_index, attribu
                             str_vec = str_value_encoding(p_v, v[0])
                         else:
                             str_vec = str_to_unit_float(' '.join(p_v))
-                        operators = ['join', '=', '>', '<', '~~', '!~~', '<>', 'in']
                         op_i = operators.index(p[1])
                         enc_column[columns_index[p[0]]*8 + op_i] = str_vec
         else:
@@ -806,5 +810,5 @@ def generate_dataset_with_explanation(dbname):
 
 if __name__ == '__main__':
     dbname = 'stats'
-    # generate_dataset(dbname)
-    generate_dataset_with_explanation(dbname)
+    generate_dataset(dbname)
+    # generate_dataset_with_explanation(dbname)
