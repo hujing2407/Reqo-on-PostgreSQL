@@ -18,7 +18,7 @@ os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
 
 def load_database_info(dbname):
-    file_path = f'../Data/{dbname}/database_statistics/'
+    file_path = f'./Data/{dbname}/database_statistics/'
     tables_index = np.load(file_path + "tables_index.npy", allow_pickle=True).item()
     tables_index_all = np.load(file_path + "tables_index_all.npy", allow_pickle=True).item()
     columns_index = np.load(file_path + "columns_index.npy", allow_pickle=True).item()
@@ -686,7 +686,7 @@ def generate_dataset(dbname):
     # Load database statistics
     tables_index, tables_index_all, columns_index, columns_list, attribute_range, nodes = load_database_info(dbname)
     # Load query plans
-    workloads_path_base = f'../Data/{dbname}/workloads/postgresql_{dbname}_executed_query'
+    workloads_path_base = f'./Data/{dbname}/workloads/postgresql_{dbname}_executed_query'
     query_plans = np.load(f'{workloads_path_base}_plans.npy', allow_pickle=True)
     query_plans_index = np.load(f'{workloads_path_base}_plans_index.npy', allow_pickle=True)
     query_index = np.load(f'{workloads_path_base}_index.npy', allow_pickle=True)
@@ -722,7 +722,7 @@ def generate_dataset(dbname):
 
     query_plans_index_num_new = [len(s) for s in query_plans_index_new]
 
-    dataset_path_base = f'../Data/{dbname}/datasets/'
+    dataset_path_base = f'./Data/{dbname}/datasets/'
     os.makedirs(dataset_path_base, exist_ok=True)
     np.save(f'{dataset_path_base}postgresql_{dbname}_executed_query_plans_dataset.npy', np.array(dataset, dtype=object))
     np.save(f'{dataset_path_base}postgresql_{dbname}_executed_query_index.npy', np.array(query_index_new, dtype=object))
@@ -734,7 +734,7 @@ def generate_dataset_with_explanation(dbname):
     # Load database statistics
     tables_index, tables_index_all, columns_index, columns_list, attribute_range, nodes = load_database_info(dbname)
     # Load query plans
-    workloads_path_base = f'../Data/{dbname}/workloads/postgresql_{dbname}_executed_query'
+    workloads_path_base = f'./Data/{dbname}/workloads/postgresql_{dbname}_executed_query'
     query_plans = np.load(f'{workloads_path_base}_plans.npy', allow_pickle=True)
     query_plans_index = np.load(f'{workloads_path_base}_plans_index.npy', allow_pickle=True)
     query_index = np.load(f'{workloads_path_base}_index.npy', allow_pickle=True)
@@ -795,7 +795,7 @@ def generate_dataset_with_explanation(dbname):
     query_plans_index_num_new = [len(s) for s in query_plans_index_new]
     query_plans_subtrees_num = [len(s) for s in dataset_subtree_labels]
 
-    dataset_path_base = f'../Data/{dbname}/datasets/'
+    dataset_path_base = f'./Data/{dbname}/datasets/'
     os.makedirs(dataset_path_base, exist_ok=True)
     np.save(f'{dataset_path_base}postgresql_{dbname}_executed_query_plans_dataset_with_explanation.npy', np.array(dataset, dtype=object))
     np.save(f'{dataset_path_base}postgresql_{dbname}_executed_query_index_with_explanation.npy', np.array(query_index_new, dtype=object))

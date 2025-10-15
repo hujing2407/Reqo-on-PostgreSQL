@@ -140,7 +140,7 @@ def postgresql_database_statistic_generator(db_params):
                 # Train/save word2vec only if we have tokens
                 if cleaned_values:
                     model = Word2Vec(sentences=[cleaned_values], vector_size=1, window=5, min_count=1, workers=8)
-                    model_dir = os.path.join('..', 'Data', db_params['dbname'], 'database_statistics', 'Word2vec')
+                    model_dir = os.path.join('.', 'Data', db_params['dbname'], 'database_statistics', 'Word2vec')
                     os.makedirs(model_dir, exist_ok=True)
                     model_path = os.path.join(model_dir, f'{table}_{column_name}.model')
                     model.save(model_path)
@@ -153,7 +153,7 @@ def postgresql_database_statistic_generator(db_params):
                 # still ensure a placeholder to avoid KeyError later
                 attribute_range[full_column_name] = [None, None, 0.0]
 
-    save_path = os.path.join('..', 'Data', db_params['dbname'], 'database_statistics')
+    save_path = os.path.join('.', 'Data', db_params['dbname'], 'database_statistics')
     os.makedirs(save_path, exist_ok=True)
     np.save(os.path.join(save_path, "tables_index"), tables_index)
     np.save(os.path.join(save_path, "tables_index_all"), tables_index_all)
