@@ -8,11 +8,14 @@ import numpy as np
 from gensim.models import Word2Vec
 from tqdm import tqdm
 import torch
-from torch_geometric.data import Data
+from torch_geometric.data import Data, Batch
 from torch_geometric.loader import DataLoader
+from concurrent.futures import ProcessPoolExecutor
+from itertools import repeat
+from functools import lru_cache
 
 def load_database_info(dbname):
-    file_path = f'Data/{dbname}/database_statistics/'
+    file_path = f'./Data/{dbname}/database_statistics/'
     tables_index = np.load(file_path + "tables_index.npy", allow_pickle=True).item()
     tables_index_all = np.load(file_path + "tables_index_all.npy", allow_pickle=True).item()
     columns_index = np.load(file_path + "columns_index.npy", allow_pickle=True).item()
@@ -22,81 +25,53 @@ def load_database_info(dbname):
     return tables_index, tables_index_all, columns_index, columns_list, attribute_range, nodes
 
 def replace_aliases_and_columns(original_plan, columns_list):
-    # Alias to full table name mapping
     alias_map = {}
-
-    # First pass: collect all aliases and corresponding full table names
     def collect_aliases(node):
         if "Relation Name" in node and "Alias" in node:
             alias_map[node["Alias"]] = node["Relation Name"]
-
-        # Recursively collect aliases in sub-plans
         if "Plans" in node:
             for subplan in node["Plans"]:
                 collect_aliases(subplan)
 
-    # Second pass: update strings in the plan using the alias mapping
     def apply_aliases(node, table_name=None):
-        # Use deep copy to avoid modifying the original node
         new_node = copy.deepcopy(node)
-
-        # Update the table name for the current node, if available
         current_table = new_node.get("Relation Name", table_name)
 
-        # Update string fields
+        alias_patterns = {alias: re.compile(r'\\b' + re.escape(alias) + r'\\.') for alias in alias_map}
+
         for key, value in new_node.items():
             if isinstance(value, str):
-                original_value = value  # Save the original value for change logging
                 for alias, full_name in alias_map.items():
-                    # Ensure only replacing "alias." forms
-                    pattern = re.compile(r'\b' + re.escape(alias) + r'\.')
-                    if pattern.search(value):
-                        value = pattern.sub(full_name + ".", value)
+                    pat = alias_patterns[alias]
+                    if pat.search(value):
+                        value = pat.sub(full_name + ".", value)
                         new_node[key] = value
-                        # print(f"Changed '{key}': '{original_value}' to '{value}'")
 
-        # Recursively update sub-plans
         if "Plans" in new_node:
             new_node["Plans"] = [apply_aliases(subplan, current_table) for subplan in new_node["Plans"]]
 
-        # Apply column name formatting
         format_column_names(new_node, current_table)
-
         return new_node
 
     def format_column_names(node, table_name):
         if table_name:
+            columns_pattern = re.compile(r'\\b(' + '|'.join(re.escape(column) for column in columns_list) + r')\\b')
             for key, value in node.items():
                 if isinstance(value, str):
-                    original_value = value  # Save the original value for logging
-
-                    # Function to conditionally replace column names
                     def replace_columns(match):
                         column_name = match.group(0)
-                        # Regex to ensure column is not part of a qualified name
-                        # Check both: not preceded and not followed by '.' or any word character
-                        full_pattern = re.compile(r'(?<![\w.])' + re.escape(column_name) + r'(?![\w.])')
+                        full_pattern = re.compile(r'(?<![\\w.])' + re.escape(column_name) + r'(?![\\w.])')
                         if full_pattern.search(value):
-                            # We need to further verify it's not part of a longer identifier
                             before = value[:match.start()]
                             after = value[match.end():]
-                            if not (before.endswith('.') or re.match(r'\.\s*\w+', after)):
+                            if not (before.endswith('.') or re.match(r'\\.\\s*\\w+', after)):
                                 return f"{table_name}.{column_name}"
                         return column_name
-
-                    # Create a regex pattern from the unique columns list to match whole words
-                    columns_pattern = r'\b(' + '|'.join(re.escape(column) for column in columns_list) + r')\b'
-                    # Replace standalone column names with "table_name.column"
-                    new_value = re.sub(columns_pattern, replace_columns, value)
+                    new_value = columns_pattern.sub(replace_columns, value)
                     if new_value != value:
                         node[key] = new_value
-                        # print(f"Formatted '{key}': '{original_value}' to '{new_value}'")
 
-    # Start collecting aliases
     collect_aliases(original_plan)
-    # print(alias_map)
-
-    # Update the plan using the collected aliases
     new_plan = apply_aliases(original_plan)
     return new_plan
 
@@ -122,7 +97,6 @@ def extract_predicates(text):
                     predicates.append([table_column, operator, value])
                 else:
                     print("Unexpected match format:", match)
-
     return predicates
 
 def clean_value(value):
@@ -139,8 +113,12 @@ def is_float_num(value):
     except ValueError:
         return False
 
+@lru_cache(maxsize=32)
+def _load_w2v_cached(model_path):
+    return Word2Vec.load(model_path)
+
 def str_value_encoding(values, model_path):
-    model = Word2Vec.load(model_path)
+    model = _load_w2v_cached(model_path)
     translation_table = str.maketrans('', '', string.punctuation)
     processed_values = [value.lower().translate(translation_table).split() for value in values]
     words = [word for sublist in processed_values for word in sublist]
@@ -173,14 +151,22 @@ def Text_extraction(text, tables_index, tables_index_all, columns_index, attribu
             else:
                 v = attribute_range[p[0]]
                 if len(v) == 3:
+                    oprators = ['join', '=', '<', '<=', '>', '>=', '<>', 'in']
+                    if p[2] == 'ANY':
+                        enc_column[columns_index[p[0]] * 8 + oprators.index(p[1])] = 2
+                        continue
+                    if p[2] == '(SubPlan':
+                        enc_column[columns_index[p[0]] * 8 + oprators.index(p[1])] = 0.5
+                        continue
+
                     if type(v[0]) != datetime:
                         r = v[1] - v[0]
                         if r == 0:
                             r = 1
-                        p_v = float(re.findall(r'-?\d+\.?\d*e?-?\d*?', p[2])[0])
-                    else:
-                        r = v[1] - v[0]
-                        p_v = ' '.join(p[2:]).split('::')[0].replace('\'', '')
+                            p_v = float(re.findall(r'-?\d+\.?\d*e?-?\d*?', p[2])[0])
+                        else:
+                            r = v[1] - v[0]
+                            p_v = ' '.join(p[2:]).split('::')[0].replace('\'', '')
                         try:
                             p_v = datetime.strptime(p_v, '%Y-%m-%d')
                         except:
@@ -231,7 +217,6 @@ def Text_extraction(text, tables_index, tables_index_all, columns_index, attribu
                             num = 2
                         else:
                             num = 2 - (p_v - v[0]) / r
-                            # print(num)
                         enc_column[columns_index[p[0]]*8 + 5] = num
                     elif p[1] == '=':
                         if p_v < v[0] or p_v > v[1]:
@@ -245,11 +230,7 @@ def Text_extraction(text, tables_index, tables_index_all, columns_index, attribu
                         else:
                             num = 1 + (p_v - v[0]) / r
                         enc_column[columns_index[p[0]]*8 + 6] = num
-
-
                 else:
-                    # ['join', '=', '>', '<', '~~', '!~~', '<>', 'in']
-
                     if '{' in p[2] and p[1] == '=':
                         in_num = 0
                         num = 0
@@ -277,7 +258,7 @@ def Text_extraction(text, tables_index, tables_index_all, columns_index, attribu
         else:
             continue
 
-    words = re.findall(r'\b\w+\b', text)
+    words = re.findall(r'\\b\\w+\\b', text)
     for item in words:
         if item in tables_index_all:
             enc_table[tables_index_all[item]] = 1
@@ -448,11 +429,6 @@ def Subtree_traversal(tree, L, index):
         L.append(tree)
         if node_index == 0:
             return L
-    # # If treat a leaf node as a subtree.
-    # elif 'Plans' not in tree:
-    #     L.append(tree)
-    #     if node_index == 0:
-    #         return L
     else:
         if node_index == 0:
             if L != []:
@@ -519,9 +495,6 @@ def Join_only_tree(tree, join_tree):
                 join_tree = {'joins': join_tree_child, 'label': tree["Actual Total Time"] * 1}
             else:
                 join_tree = {'label': tree["Actual Total Time"] * 1}
-    # # If treat a leaf node as a subtree.
-    # else:
-    #     join_tree = {'label': tree["Actual Total Time"] * 1}
     return join_tree
 
 def Join_p_c_pair(join_tree, index, post_t_index, post_t_index_dic, L_pair_index, L_pair_label):
@@ -621,18 +594,84 @@ def encoding_generate(tree, index, post_t_index, post_t_index_dic, L_n, L_e, tab
     # Extract and append node features to L_n
     node_feature = Node_info_extract(tree, tables_index, tables_index_all, columns_index, attribute_range, nodes, query_plans_stats)
     L_n.append(node_feature)
-    
-    # # If treat a leaf node as a subtree.
-    # if node_index == 0 and L_e == []:
-    #     L_e.append([node_index, node_index])
-    
     return index, L_n, L_e, post_t_index, post_t_index_dic
+
+# ---- workers (top-level for pickling) ----
+def _worker_generate_dataset(args):
+    plans_i, plans_index_i, q_index_i, columns_list, tables_index, tables_index_all, columns_index, attribute_range, nodes, query_plans_stats = args
+    dataset_i = []
+    query_plans_index_new_i = []
+    query_plans_postgres_cost_new_i = []
+    for j in range(len(plans_i)):
+        tree = replace_aliases_and_columns(plans_i[j], columns_list)
+        __, node_feature, edge_index, __, post_t_index_dic = encoding_generate(tree, 0, 0, {}, [], [],
+                                                                               tables_index, tables_index_all, columns_index, attribute_range, nodes, query_plans_stats)
+        edge_index = [[post_t_index_dic[e[0]], post_t_index_dic[e[1]]] for e in edge_index]
+        if len(node_feature) < 2 or len(edge_index) < 1:
+            print(f"Error in query plan {j}: too few nodes or edges")
+            continue
+        dataset_i.append([node_feature, edge_index, tree["Actual Total Time"]])
+        query_plans_index_new_i.append(plans_index_i[j])
+        query_plans_postgres_cost_new_i.append(tree["Total Cost"])
+    keep = len(query_plans_index_new_i) >= 2
+    return keep, q_index_i, dataset_i, query_plans_index_new_i, query_plans_postgres_cost_new_i
+
+def _worker_generate_dataset_with_explanation(args):
+    plans_i, plans_index_i, q_index_i, columns_list, tables_index, tables_index_all, columns_index, attribute_range, nodes, query_plans_stats = args
+    dataset_i = []
+    query_plans_index_new_i = []
+    query_plans_postgres_cost_new_i = []
+    query_plans_subtree_postgres_cost_new_i = []
+    dataset_subtree_labels_i = []
+    dataset_labels_i = []
+    dataset_sample_index_i = []
+    dataset_join_pair_index_for_explain_i = []
+    dataset_join_pair_label_for_explain_i = []
+    sample_index_i = 0  # relative; will be offset in main
+
+    for j in range(len(plans_i)):
+        tree = replace_aliases_and_columns(plans_i[j], columns_list)
+        subtrees = Data_augmentation([tree])
+        subtrees_num = len(subtrees)
+        if subtrees_num == 0:
+            print(f"Error in query plan {j}: no subtrees generated")
+            continue
+        processed_subtrees = []
+        for subtree in subtrees:
+            __, node_feature, edge_index, __, post_t_index_dic = encoding_generate(subtree, 0, 0, {}, [], [],
+                                                                                   tables_index, tables_index_all, columns_index, attribute_range, nodes, query_plans_stats)
+            edge_index = [[post_t_index_dic[e[0]], post_t_index_dic[e[1]]] for e in edge_index]
+            if len(node_feature) < 2 or len(edge_index) < 1:
+                print(f"Error in query plan {j}: too few nodes or edges")
+                continue
+            processed_subtrees.append(Data(x=torch.FloatTensor(node_feature), edge_index=torch.LongTensor(edge_index).t()))
+            query_plans_subtree_postgres_cost_new_i.append(subtree["Total Cost"])
+
+        subtreeset_loader = DataLoader(dataset=processed_subtrees, batch_size=subtrees_num, shuffle=False)
+        for _, batch in enumerate(subtreeset_loader):
+            dataset_i.append([batch.x.float().tolist(), batch.edge_index.tolist(), sample_index_i])
+            dataset_sample_index_i.append(batch.batch.tolist())
+            sample_index_i += 1
+
+        L_pair_index, L_pair_label, L_label = join_explanation_generate(tree)
+        dataset_subtree_labels_i.append(L_label)
+        dataset_labels_i += L_label
+        dataset_join_pair_index_for_explain_i.append(L_pair_index)
+        dataset_join_pair_label_for_explain_i.append(L_pair_label)
+        query_plans_index_new_i.append(plans_index_i[j])
+        query_plans_postgres_cost_new_i.append(tree["Total Cost"])
+
+    keep = len(query_plans_index_new_i) >= 2
+    return (keep, q_index_i, dataset_i, dataset_sample_index_i, query_plans_index_new_i,
+            query_plans_postgres_cost_new_i, query_plans_subtree_postgres_cost_new_i,
+            dataset_labels_i, dataset_subtree_labels_i, dataset_join_pair_index_for_explain_i,
+            dataset_join_pair_label_for_explain_i, sample_index_i)
 
 def generate_dataset(dbname):
     # Load database statistics
     tables_index, tables_index_all, columns_index, columns_list, attribute_range, nodes = load_database_info(dbname)
     # Load query plans
-    workloads_path_base = f'Data/{dbname}/workloads/postgresql_{dbname}_executed_query'
+    workloads_path_base = f'./Data/{dbname}/workloads/postgresql_{dbname}_executed_query'
     query_plans = np.load(f'{workloads_path_base}_plans.npy', allow_pickle=True)
     query_plans_index = np.load(f'{workloads_path_base}_plans_index.npy', allow_pickle=True)
     query_index = np.load(f'{workloads_path_base}_index.npy', allow_pickle=True)
@@ -654,33 +693,21 @@ def generate_dataset(dbname):
     query_plans_index_new = []
     query_plans_postgres_cost_new = []
 
-    # Generate the dataset
-    for i in tqdm(range(len(query_plans))):
-        dataset_i = []
-        query_plans_index_new_i = []
-        query_plans_postgres_cost_new_i = []
+    # parallel per-query
+    args_iter = zip(query_plans, query_plans_index, query_index,
+                    repeat(columns_list), repeat(tables_index), repeat(tables_index_all),
+                    repeat(columns_index), repeat(attribute_range), repeat(nodes), repeat(query_plans_stats))
+    with ProcessPoolExecutor(max_workers=os.cpu_count() or 1) as ex:
+        for keep, q_idx, dataset_i, qp_idx_i, qp_cost_i in tqdm(ex.map(_worker_generate_dataset, args_iter, chunksize=4), total=len(query_plans)):
+            if keep:
+                dataset.extend(dataset_i)
+                query_index_new.append(q_idx)
+                query_plans_index_new.append(qp_idx_i)
+                query_plans_postgres_cost_new.append(qp_cost_i)
 
-        for j in range(len(query_plans[i])):
-            tree = replace_aliases_and_columns(query_plans[i][j], columns_list)
-            __, node_feature, edge_index, __, post_t_index_dic = encoding_generate(tree, 0, 0, {}, [], [],
-                                                                                   tables_index, tables_index_all, columns_index, attribute_range, nodes, query_plans_stats)
-            edge_index = [[post_t_index_dic[e[0]], post_t_index_dic[e[1]]] for e in edge_index]
-
-            if len(node_feature) < 2 or len(edge_index) < 1:
-                print(f"Error in query plan {j} of query {i}: too few nodes or edges")
-                continue
-            dataset_i.append([node_feature, edge_index, tree["Actual Total Time"]])
-            query_plans_index_new_i.append(query_plans_index[i][j])
-            query_plans_postgres_cost_new_i.append(tree["Total Cost"])
-
-        if len(query_plans_index_new_i) >= 2:
-            dataset.extend(dataset_i)
-            query_index_new.append(query_index[i])
-            query_plans_index_new.append(query_plans_index_new_i)
-            query_plans_postgres_cost_new.append(query_plans_postgres_cost_new_i)
     query_plans_index_num_new = [len(s) for s in query_plans_index_new]
 
-    dataset_path_base = f'Data/{dbname}/datasets/'
+    dataset_path_base = f'./Data/{dbname}/datasets/'
     os.makedirs(dataset_path_base, exist_ok=True)
     np.save(f'{dataset_path_base}postgresql_{dbname}_executed_query_plans_dataset.npy', np.array(dataset, dtype=object))
     np.save(f'{dataset_path_base}postgresql_{dbname}_executed_query_index.npy', np.array(query_index_new, dtype=object))
@@ -692,7 +719,7 @@ def generate_dataset_with_explanation(dbname):
     # Load database statistics
     tables_index, tables_index_all, columns_index, columns_list, attribute_range, nodes = load_database_info(dbname)
     # Load query plans
-    workloads_path_base = f'Data/{dbname}/workloads/postgresql_{dbname}_executed_query'
+    workloads_path_base = f'./Data/{dbname}/workloads/postgresql_{dbname}_executed_query'
     query_plans = np.load(f'{workloads_path_base}_plans.npy', allow_pickle=True)
     query_plans_index = np.load(f'{workloads_path_base}_plans_index.npy', allow_pickle=True)
     query_index = np.load(f'{workloads_path_base}_index.npy', allow_pickle=True)
@@ -722,74 +749,38 @@ def generate_dataset_with_explanation(dbname):
     dataset_join_pair_index_for_explain = []
     dataset_join_pair_label_for_explain = []
 
-    # Generate the dataset
-    for i in tqdm(range(len(query_plans))):
-        dataset_i = []
-        query_plans_index_new_i = []
-        query_plans_postgres_cost_new_i = []
-        query_plans_subtree_postgres_cost_new_i = []
-        dataset_subtree_labels_i = []
-        dataset_labels_i = []
-        dataset_sample_index_i = []
-        dataset_join_pair_index_for_explain_i = []
-        dataset_join_pair_label_for_explain_i = []
-        sample_index_i = sample_index
+    # parallel per-query
+    args_iter = zip(query_plans, query_plans_index, query_index,
+                    repeat(columns_list), repeat(tables_index), repeat(tables_index_all),
+                    repeat(columns_index), repeat(attribute_range), repeat(nodes), repeat(query_plans_stats))
+    with ProcessPoolExecutor(max_workers=os.cpu_count() or 1) as ex:
+        results = list(tqdm(ex.map(_worker_generate_dataset_with_explanation, args_iter, chunksize=4), total=len(query_plans)))
 
-        for j in range(len(query_plans[i])):
-            tree = replace_aliases_and_columns(query_plans[i][j], columns_list)
-            subtrees = Data_augmentation([tree])
-            subtrees_num = len(subtrees)
-            if subtrees_num == 0:
-                print(f"Error in query plan {j} of query {i}: no subtrees generated")
-                continue
-            processed_subtrees = []
-            for subtree in subtrees:
-                __, node_feature, edge_index, __, post_t_index_dic = encoding_generate(subtree, 0, 0, {}, [], [],
-                                                                                       tables_index, tables_index_all, columns_index, attribute_range, nodes, query_plans_stats)
-                edge_index = [[post_t_index_dic[e[0]], post_t_index_dic[e[1]]] for e in edge_index]
+    for (keep, q_idx_i, dataset_i, dataset_sample_index_i, qp_idx_i,
+         qp_cost_i, qp_subtree_cost_i, labels_i, subtree_labels_i,
+         pair_idx_i, pair_label_i, rel_count) in results:
+        if not keep:
+            continue
+        # fix relative sample_index to global
+        for entry in dataset_i:
+            entry[2] += sample_index
+        dataset += dataset_i
+        dataset_sample_index += dataset_sample_index_i
+        sample_index += rel_count
 
-                if len(node_feature) < 2 or len(edge_index) < 1:
-                    print(f"Error in query plan {j} of query {i}: too few nodes or edges")
-                    continue
-                processed_subtrees.append(Data(x=torch.FloatTensor(node_feature), edge_index=torch.LongTensor(edge_index).t()))
-                query_plans_subtree_postgres_cost_new_i.append(subtree["Total Cost"])
-
-            subtreeset_loader = DataLoader(
-                dataset=processed_subtrees,
-                batch_size=subtrees_num,
-                shuffle=False)
-            for _, batch in enumerate(subtreeset_loader):
-                dataset_i.append([batch.x.float().tolist(),
-                               batch.edge_index.tolist(),
-                               sample_index_i])
-                dataset_sample_index_i.append(batch.batch.tolist())
-                sample_index_i += 1
-            L_pair_index, L_pair_label, L_label = join_explanation_generate(tree)
-
-            dataset_subtree_labels_i.append(L_label)
-            dataset_labels_i += L_label
-            dataset_join_pair_index_for_explain_i.append(L_pair_index)
-            dataset_join_pair_label_for_explain_i.append(L_pair_label)
-            query_plans_index_new_i.append(query_plans_index[i][j])
-            query_plans_postgres_cost_new_i.append(tree["Total Cost"])
-
-        if len(query_plans_index_new_i) >= 2:
-            dataset += dataset_i
-            query_index_new.append(query_index[i])
-            query_plans_index_new.append(query_plans_index_new_i)
-            query_plans_postgres_cost_new.append(query_plans_postgres_cost_new_i)
-            query_plans_subtree_postgres_cost_new += query_plans_subtree_postgres_cost_new_i
-            dataset_labels += dataset_labels_i
-            dataset_sample_index += dataset_sample_index_i
-            dataset_subtree_labels += dataset_subtree_labels_i
-            dataset_join_pair_index_for_explain += dataset_join_pair_index_for_explain_i
-            dataset_join_pair_label_for_explain += dataset_join_pair_label_for_explain_i
-            sample_index = sample_index_i
+        query_index_new.append(q_idx_i)
+        query_plans_index_new.append(qp_idx_i)
+        query_plans_postgres_cost_new.append(qp_cost_i)
+        query_plans_subtree_postgres_cost_new += qp_subtree_cost_i
+        dataset_labels += labels_i
+        dataset_subtree_labels += subtree_labels_i
+        dataset_join_pair_index_for_explain += pair_idx_i
+        dataset_join_pair_label_for_explain += pair_label_i
 
     query_plans_index_num_new = [len(s) for s in query_plans_index_new]
     query_plans_subtrees_num = [len(s) for s in dataset_subtree_labels]
 
-    dataset_path_base = f'Data/{dbname}/datasets/'
+    dataset_path_base = f'./Data/{dbname}/datasets/'
     os.makedirs(dataset_path_base, exist_ok=True)
     np.save(f'{dataset_path_base}postgresql_{dbname}_executed_query_plans_dataset_with_explanation.npy', np.array(dataset, dtype=object))
     np.save(f'{dataset_path_base}postgresql_{dbname}_executed_query_index_with_explanation.npy', np.array(query_index_new, dtype=object))
@@ -806,14 +797,5 @@ def generate_dataset_with_explanation(dbname):
 
 if __name__ == '__main__':
     dbname = 'stats'
-    # generate_dataset(dbname)
+    generate_dataset(dbname)
     # generate_dataset_with_explanation(dbname)
-
-
-
-
-
-
-
-
-
