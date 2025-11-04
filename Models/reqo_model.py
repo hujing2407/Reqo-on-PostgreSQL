@@ -21,6 +21,11 @@ class Feature_encoder(torch.nn.Module):
 
     def forward(self, node_features, table_columns_number):
         node_num = node_features.size(0)
+        # print("\nnode_type_num:", self.node_type_num)
+        # print("table_num:", self.table_num)
+        # print("column_num:", self.column_num)
+        # print("Expected total:", self.node_type_num + 2 + self.table_num + self.column_num * 8)
+        # print("Actual tensor size:", node_features.size(1))
         node_features = torch.split(node_features, [self.node_type_num, 2, self.table_num, self.column_num * 8], dim=1)
         node_type_enc = torch.relu(self.node_type_enc(node_features[0]))
         node_stats_enc = node_features[1]

@@ -36,7 +36,7 @@ def execute_query(db_params, q):
                 result = cursor.fetchall()[0][0][0]['Plan']
     except Exception as e:
         print(f"An error occurred while executing the query: {e}")
-        sys.exit()
+        # sys.exit()
     return result
 
 def execute_query_with_hint(db_params, h, q):
@@ -48,7 +48,7 @@ def execute_query_with_hint(db_params, h, q):
                 result = cursor.fetchall()[0][0][0]['Plan']
     except Exception as e:
         print(f"An error occurred while executing the query: {e}")
-        sys.exit()
+        # sys.exit()
     return result
 
 def generate_postgresql_workload_with_hints(db_params, query_file_path):
@@ -76,7 +76,7 @@ def generate_postgresql_workload_with_hints(db_params, query_file_path):
             except Exception as e:
                 print(f'Timeout or error on query {i}_{h_index}: {e}')
                 timeouts += 1
-                continue
+                break
 
         if len(query_plans) >= 2:
             executed_query_plans.append(query_plans)

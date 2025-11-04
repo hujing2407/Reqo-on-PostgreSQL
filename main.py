@@ -12,7 +12,7 @@ def main(dbname, user, password, host, port, query_file_path, explain_or_not, sa
         "password": password,
         "host": host,
         "port": port,
-        # "options": "-c statement_timeout=600000"
+        "options": "-c statement_timeout=600000"
     }
 
     # Generate the database statistic for the given database
@@ -27,11 +27,11 @@ def main(dbname, user, password, host, port, query_file_path, explain_or_not, sa
     else:
         generate_dataset_with_explanation(dbname)
 
-    # Train and evaluate the model with k-fold cross validation
-    if not explain_or_not:
-        k_fold_train(dbname, reqo_config, k=10, save_model=save_model)
-    else:
-        k_fold_train_with_explanation(dbname, reqo_config, k=10, save_model=save_model)
+    # # Train and evaluate the model with k-fold cross validation
+    # if not explain_or_not:
+    #     k_fold_train(dbname, reqo_config, k=10, save_model=save_model)
+    # else:
+    #     k_fold_train_with_explanation(dbname, reqo_config, k=10, save_model=save_model)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Database connection parameters')
