@@ -16,7 +16,7 @@
                 "--dbname","stats",
                 "--user", "postgres",
                 "--password", "123",
-                "--query_file_path", "./Data/stats/queries/stats_queries.txt",
+                "--query_file_path", "./Data/stats/queries/stats_queries_copy.txt",
                 "--host", "localhost",
                 "--port", "5432",
                 //  "--explain_or_not", "False",

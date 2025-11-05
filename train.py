@@ -6,6 +6,7 @@ from torch_geometric.data import Data
 from torch_geometric.utils import sort_edge_index
 from torch_geometric.loader import DataLoader
 from tqdm import tqdm
+from datetime import datetime
 from Models.reqo_model import Reqo
 from Utils.loss import *
 from Utils.evaluate import get_qerror_and_spearman, get_plansubop_and_runtime, write_results_to_file, plot_runtimes
@@ -45,7 +46,9 @@ def train(dbname, reqo_config, k_i, trainset, testset, save_path, query_plans_in
     # criteon_logmse = LogMSELoss()
     criteon_data_uncertainty = DataUncertaintyLoss()
     criteon_ranking = PairRankingLoss()
-    optimizer = optim.Adam(model.parameters(), lr=reqo_config["learning_rate"])
+    # optimizer = optim.Adam(model.parameters(), lr=reqo_config["learning_rate"])
+    from upgd import UPGD
+    optimizer = UPGD(model.parameters(), lr=1e-5, weight_decay=1e-3, beta_utility=0.999, sigma=1e-3)
 
     epochs = 100
     early_stop = 0
@@ -169,9 +172,17 @@ def k_fold_train(dbname, reqo_config, k=10, save_model=False):
         all_postgres_runtimes.extend(runtime_per_query[0])
         all_reqo_runtimes.extend(runtime_per_query[1])
         all_optimal_runtimes.extend(runtime_per_query[2])
-
-    write_results_to_file(nanmean(np.array(all_results), axis=0), expl_or_not=False, filename=save_path + 'reqo_avg_results.txt')
-    plot_runtimes(all_postgres_runtimes, all_reqo_runtimes, all_optimal_runtimes, save_path + 'reqo_runtime_performance.png')
+        
+    # Get current datetime
+    now = datetime.now()
+    # Format datetime into a string for the filename
+    timestamp_str = now.strftime("%Y%m%d_%H")
+    # Construct the new filename
+    result_name = f"reqo_avg_results_{timestamp_str}.txt"
+    performance_name = f"reqo_runtime_performance_{timestamp_str}.png"
+    # Save result and performance diagram
+    write_results_to_file(nanmean(np.array(all_results), axis=0), expl_or_not=False, filename=save_path + result_name)
+    plot_runtimes(all_postgres_runtimes, all_reqo_runtimes, all_optimal_runtimes, save_path + performance_name)
 
 
 if __name__ == '__main__':
