@@ -25,7 +25,7 @@ class DataUncertaintyLoss(torch.nn.Module):
         return torch.mean(loss)
 
 class PairRankingLoss(torch.nn.Module):
-    def __init__(self, margin=3.5): # margin=3.5 is very important
+    def __init__(self, margin=3.5): # very important, margin=3.5 is quiet aggressive
         super(PairRankingLoss, self).__init__()
         self.margin = margin
 

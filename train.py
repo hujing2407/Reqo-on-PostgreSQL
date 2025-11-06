@@ -43,9 +43,10 @@ def train(dbname, reqo_config, k_i, trainset, testset, save_path, query_plans_in
     model = Reqo(encoder_params=encoder_params, estimator_params=estimator_params)
     model = model.to(device)
 
+    margin_value = reqo_config["margin"]
     # criteon_logmse = LogMSELoss()
     criteon_data_uncertainty = DataUncertaintyLoss()
-    criteon_ranking = PairRankingLoss()
+    criteon_ranking = PairRankingLoss(margin=margin_value)
     # optimizer = optim.Adam(model.parameters(), lr=reqo_config["learning_rate"])
     from upgd import UPGD
     optimizer = UPGD(model.parameters(), lr=1e-5, weight_decay=1e-3, beta_utility=0.999, sigma=1e-3)
@@ -177,9 +178,10 @@ def k_fold_train(dbname, reqo_config, k=10, save_model=False):
     now = datetime.now()
     # Format datetime into a string for the filename
     timestamp_str = now.strftime("%Y%m%d_%H")
+    margin_value = reqo_config["margin"]
     # Construct the new filename
-    result_name = f"reqo_avg_results_{timestamp_str}.txt"
-    performance_name = f"reqo_runtime_performance_{timestamp_str}.png"
+    result_name = f"reqo_avg_results_{timestamp_str}_{margin_value}.txt"
+    performance_name = f"reqo_runtime_performance_{timestamp_str}_{margin_value}.png"
     # Save result and performance diagram
     write_results_to_file(nanmean(np.array(all_results), axis=0), expl_or_not=False, filename=save_path + result_name)
     plot_runtimes(all_postgres_runtimes, all_reqo_runtimes, all_optimal_runtimes, save_path + performance_name)
@@ -187,8 +189,14 @@ def k_fold_train(dbname, reqo_config, k=10, save_model=False):
 
 if __name__ == '__main__':
     dbname = 'stats'
-    reqo_config = {'batch_size': 256, 'learning_rate': 0.001,
-              'encoder_attention_heads': 8, 'encoder_conv_layers': 4, 'encoder_gnn_embedding_dim': 256, 'encoder_gnn_dropout_rate': 0.1, 'encoder_dirgnn_alpha': 0.3, 'encoder_node_type_embedding_dim': 16, 'encoder_column_embedding_dim': 8,
-              'explainer_fcn_layers': 4, 'explainer_explanation_embedding_dim': 512, 'explainer_fcn_dropout_rate': 0.1,
-              'estimator_fcn_layers': 4, 'estimator_estimation_embedding_dim': 512, 'estimator_fcn_dropout_rate': 0.1}
-    k_fold_train(dbname, reqo_config, k=10)
+    
+    margin_values = np.linspace(0, 2.5, num=11) 
+
+    for margin in margin_values:
+        reqo_config = {'batch_size': 256, 'learning_rate': 0.001,
+                'encoder_attention_heads': 8, 'encoder_conv_layers': 4, 'encoder_gnn_embedding_dim': 256, 'encoder_gnn_dropout_rate': 0.1, 'encoder_dirgnn_alpha': 0.3, 'encoder_node_type_embedding_dim': 16, 'encoder_column_embedding_dim': 8,
+                'explainer_fcn_layers': 4, 'explainer_explanation_embedding_dim': 512, 'explainer_fcn_dropout_rate': 0.1,
+                'estimator_fcn_layers': 4, 'estimator_estimation_embedding_dim': 512, 'estimator_fcn_dropout_rate': 0.1,
+                'margin': margin}
+        # print(f"\n🔍 Testing margin = {margin:.1f}")
+        k_fold_train(dbname, reqo_config, k=10)
