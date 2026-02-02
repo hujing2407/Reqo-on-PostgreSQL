@@ -91,7 +91,7 @@ def get_plansubop_and_runtime(outputs, targets, query_postgres_cost, query_plans
     return robustness_results, [postgres_select_runtime, model_select_runtime, optimal_runtime]
 
 
-def write_results_to_file(results, expl_or_not=False, filename='results.txt'):
+def write_results_to_file(results, expl_or_not=False, filename='results.txt', training_time=None):
     # Unpack results (assuming each value is in the correct position based on the provided structure)
     qerror_metrics = results[0:9]  # First nine are q-error and Spearman correlation
     robustness_metrics = results[9:22]  # Remaining are robustness and runtime metrics
@@ -99,6 +99,8 @@ def write_results_to_file(results, expl_or_not=False, filename='results.txt'):
         expl_metrics = results[22:]
 
     with open(filename, 'w') as file:
+        if training_time is not None:
+            file.write(f"Training Time: {training_time:.2f} seconds\n\n")
         file.write("Cost Estimation Results:\n")
         file.write("-" * 30 + "\n")
         file.write(f"Mean Q-Error (Top 50%): {qerror_metrics[0]}\n")

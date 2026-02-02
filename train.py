@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import time
 from numpy import nanmean
 from torch import optim
 from torch_geometric.data import Data
@@ -44,12 +45,12 @@ def train(dbname, reqo_config, k_i, trainset, testset, save_path, query_plans_in
     model = model.to(device)
 
     margin_value = reqo_config["margin"]
-    # criteon_logmse = LogMSELoss()
-    criteon_data_uncertainty = DataUncertaintyLoss()
-    criteon_ranking = PairRankingLoss(margin=margin_value)
-    # optimizer = optim.Adam(model.parameters(), lr=reqo_config["learning_rate"])
-    from upgd import UPGD
-    optimizer = UPGD(model.parameters(), lr=1e-5, weight_decay=1e-3, beta_utility=0.999, sigma=1e-3)
+    criteon_logmse = LogMSELoss()
+    # criteon_data_uncertainty = DataUncertaintyLoss()
+    # criteon_ranking = PairRankingLoss(margin=margin_value)
+    optimizer = optim.Adam(model.parameters(), lr=reqo_config["learning_rate"])
+    # from upgd import UPGD
+    # optimizer = UPGD(model.parameters(), lr=1e-5, weight_decay=1e-3, beta_utility=0.999, sigma=1e-3)
 
     epochs = 100
     early_stop = 0
@@ -66,9 +67,10 @@ def train(dbname, reqo_config, k_i, trainset, testset, save_path, query_plans_in
                 batch.to(device)
                 optimizer.zero_grad()
                 batch_train_pred, batch_train_va, batch_train_iv = model(batch, table_columns_number)
-                train_data_uncertainty_loss = criteon_data_uncertainty(batch_train_pred, batch_train_va, batch.y.float(), max_label_log, min_label_log)
-                train_ranking_loss = criteon_ranking(batch_train_iv, batch.y.float(), max_label_log, min_label_log)
-                train_loss = train_data_uncertainty_loss + train_ranking_loss
+                # train_data_uncertainty_loss = criteon_data_uncertainty(batch_train_pred, batch_train_va, batch.y.float(), max_label_log, min_label_log)
+                # train_ranking_loss = criteon_ranking(batch_train_iv, batch.y.float(), max_label_log, min_label_log)
+                # train_loss = train_data_uncertainty_loss + train_ranking_loss
+                train_loss = criteon_logmse(batch_train_pred, batch.y.float(), max_label_log, min_label_log)
                 train_loss.backward()
                 optimizer.step()
 
@@ -90,9 +92,10 @@ def train(dbname, reqo_config, k_i, trainset, testset, save_path, query_plans_in
                 batch = batch.to(device)
                 with torch.no_grad():
                     batch_test_pred, batch_test_va, batch_test_iv = model(batch, table_columns_number)
-                test_data_uncertainty = criteon_data_uncertainty(batch_test_pred, batch_test_va, batch.y.float(), max_label_log, min_label_log)
-                test_ranking_loss = criteon_ranking(batch_test_iv, batch.y.float(), max_label_log, min_label_log)
-                test_loss = test_data_uncertainty + test_ranking_loss
+                # test_data_uncertainty = criteon_data_uncertainty(batch_test_pred, batch_test_va, batch.y.float(), max_label_log, min_label_log)
+                # test_ranking_loss = criteon_ranking(batch_test_iv, batch.y.float(), max_label_log, min_label_log)
+                # test_loss = test_data_uncertainty + test_ranking_loss
+                test_loss = criteon_logmse(batch_test_pred, batch.y.float(), max_label_log, min_label_log)
                 batch_graph_num = batch.num_graphs
                 test_loss_all += test_loss.item()*batch_graph_num
                 end = step + batch_graph_num
@@ -147,6 +150,8 @@ def train(dbname, reqo_config, k_i, trainset, testset, save_path, query_plans_in
     return cost_estimation_results+robustness_results, runtime_per_query
 
 def k_fold_train(dbname, reqo_config, k=10, save_model=False):
+    start_time = time.perf_counter()
+
     save_path = f'Results/{dbname}/'
     os.makedirs(save_path, exist_ok=True)
     dataset = np.load(f'Data/{dbname}/datasets/postgresql_{dbname}_executed_query_plans_dataset.npy', allow_pickle=True)
@@ -174,6 +179,7 @@ def k_fold_train(dbname, reqo_config, k=10, save_model=False):
         all_reqo_runtimes.extend(runtime_per_query[1])
         all_optimal_runtimes.extend(runtime_per_query[2])
         
+    training_time = time.perf_counter() - start_time
     # Get current datetime
     now = datetime.now()
     # Format datetime into a string for the filename
@@ -183,7 +189,7 @@ def k_fold_train(dbname, reqo_config, k=10, save_model=False):
     result_name = f"reqo_avg_results_{timestamp_str}_{margin_value}.txt"
     performance_name = f"reqo_runtime_performance_{timestamp_str}_{margin_value}.png"
     # Save result and performance diagram
-    write_results_to_file(nanmean(np.array(all_results), axis=0), expl_or_not=False, filename=save_path + result_name)
+    write_results_to_file(nanmean(np.array(all_results), axis=0), expl_or_not=False, filename=save_path + result_name, training_time=training_time)
     plot_runtimes(all_postgres_runtimes, all_reqo_runtimes, all_optimal_runtimes, save_path + performance_name)
 
 

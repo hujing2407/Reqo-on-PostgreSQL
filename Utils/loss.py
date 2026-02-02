@@ -14,41 +14,41 @@ class LogMSELoss(torch.nn.Module):
         loss = (targets - inputs)**2
         return torch.mean(loss)
 
-class DataUncertaintyLoss(torch.nn.Module):
-    def __init__(self, weight=None, size_average=True):
-        super(DataUncertaintyLoss, self).__init__()
+# class DataUncertaintyLoss(torch.nn.Module):
+#     def __init__(self, weight=None, size_average=True):
+#         super(DataUncertaintyLoss, self).__init__()
 
-    def forward(self, pred, va, targets, max_num, min_num):
-        targets = (torch.log(targets+1) - min_num) / (max_num - min_num)
-        pred = pred.reshape(len(targets))
-        loss = torch.log(va)/2 + torch.square(pred-targets)/(2*va) + math.log(2*math.pi)/2
-        return torch.mean(loss)
+#     def forward(self, pred, va, targets, max_num, min_num):
+#         targets = (torch.log(targets+1) - min_num) / (max_num - min_num)
+#         pred = pred.reshape(len(targets))
+#         loss = torch.log(va)/2 + torch.square(pred-targets)/(2*va) + math.log(2*math.pi)/2
+#         return torch.mean(loss)
 
-class PairRankingLoss(torch.nn.Module):
-    def __init__(self, margin=3.5): # very important, margin=3.5 is quiet aggressive
-        super(PairRankingLoss, self).__init__()
-        self.margin = margin
+# class PairRankingLoss(torch.nn.Module):
+#     def __init__(self, margin=3.5): # very important, margin=3.5 is quiet aggressive
+#         super(PairRankingLoss, self).__init__()
+#         self.margin = margin
 
-    def forward(self, cost, targets, max_num, min_num):
-        n = len(targets)
+#     def forward(self, cost, targets, max_num, min_num):
+#         n = len(targets)
 
-        targets = (torch.log(targets + 1) - min_num) / (max_num - min_num)
-        cost = cost.reshape(n)
+#         targets = (torch.log(targets + 1) - min_num) / (max_num - min_num)
+#         cost = cost.reshape(n)
 
-        targets_r = targets.repeat(n, 1)
-        targets_m = targets_r.transpose(0, 1) - targets_r
+#         targets_r = targets.repeat(n, 1)
+#         targets_m = targets_r.transpose(0, 1) - targets_r
 
-        cost_r = cost.repeat(n, 1)
-        cost_m = cost_r.transpose(0, 1) - cost_r
+#         cost_r = cost.repeat(n, 1)
+#         cost_m = cost_r.transpose(0, 1) - cost_r
 
-        targets_t = torch.sign(targets_m)
-        cost_t = torch.sign(cost_m)
+#         targets_t = torch.sign(targets_m)
+#         cost_t = torch.sign(cost_m)
 
-        incorrect_mask = targets_t != cost_t
+#         incorrect_mask = targets_t != cost_t
 
-        loss = torch.mean(incorrect_mask * torch.exp(self.margin + torch.abs(cost_m)))
+#         loss = torch.mean(incorrect_mask * torch.exp(self.margin + torch.abs(cost_m)))
 
-        return loss
+#         return loss
 
 class ExplanationLoss(torch.nn.Module):
     def __init__(self, weight=None, size_average=True):
