@@ -111,25 +111,14 @@ def train(dbname, reqo_config, k_i, trainset, testset, save_path, query_plans_in
         actual_latency = actual_latency.cpu().numpy()
 
         cost_estimation_results = get_qerror_and_spearman(pred_ev, actual_latency, max_label_log, min_label_log)
-        robustness_results, runtime_per_query = get_plansubop_and_runtime(pred_iv, actual_latency,
+        robustness_results, runtime_per_query = get_plansubop_and_runtime(pred_ev, actual_latency,
                                                                           query_postgres_cost_i,
                                                                           query_plans_index_num_i)
         print(f'Fold {k_i} Epoch {epoch + 1}: train_loss: {avg_train_loss}, test_loss: {avg_test_loss}, spearmancorrelation: {cost_estimation_results[-1]}, optimal_runtime_ratio: {robustness_results[11]}')
 
         # Early stop based on test loss
-        if avg_test_loss < best_test_perf:
-            best_test_perf = avg_test_loss
-            best_model = model.state_dict()
-            best_cost_estimation_results = cost_estimation_results
-            best_robustness_results = robustness_results
-            best_runtime_per_query = runtime_per_query
-            early_stop = 0
-        else:
-            early_stop += 1
-
-        # # Early stop based on optimal runtime ratio
-        # if robustness_results[11] < best_test_perf:
-        #     best_test_perf = robustness_results[11]
+        # if avg_test_loss < best_test_perf:
+        #     best_test_perf = avg_test_loss
         #     best_model = model.state_dict()
         #     best_cost_estimation_results = cost_estimation_results
         #     best_robustness_results = robustness_results
@@ -137,6 +126,17 @@ def train(dbname, reqo_config, k_i, trainset, testset, save_path, query_plans_in
         #     early_stop = 0
         # else:
         #     early_stop += 1
+
+        # # Early stop based on optimal runtime ratio
+        if robustness_results[11] < best_test_perf:
+            best_test_perf = robustness_results[11]
+            best_model = model.state_dict()
+            best_cost_estimation_results = cost_estimation_results
+            best_robustness_results = robustness_results
+            best_runtime_per_query = runtime_per_query
+            early_stop = 0
+        else:
+            early_stop += 1
 
     cost_estimation_results = best_cost_estimation_results
     robustness_results = best_robustness_results
@@ -196,7 +196,8 @@ def k_fold_train(dbname, reqo_config, k=10, save_model=False):
 if __name__ == '__main__':
     dbname = 'stats'
     
-    margin_values = np.linspace(0, 2.5, num=11) 
+    # margin_values = np.linspace(0, 2.5, num=11)
+    margin_values = [2.5] 
 
     for margin in margin_values:
         reqo_config = {'batch_size': 256, 'learning_rate': 0.001,
